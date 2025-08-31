@@ -1,5 +1,5 @@
 {
-  "name": "starter-template",
+  "name": "sync-with-algolia",
   "version": "1.0.0",
   "description": "",
   "main": "src/main.js",
@@ -7,7 +7,9 @@
   "scripts": {
     "format": "prettier --write ."
   },
+  "keywords": [],
   "dependencies": {
+    "algoliasearch": "^4.23.3",
     "node-appwrite": "^14.1.0"
   },
   "devDependencies": {
