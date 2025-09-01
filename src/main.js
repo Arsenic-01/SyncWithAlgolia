@@ -2,16 +2,6 @@ import algoliasearch from 'algoliasearch';
 import { throwIfMissing } from './utils.js';
 
 export default async ({ req, res, log, error }) => {
-  // =================================================================
-  // NEW: Added detailed logging for debugging
-  // =================================================================
-  log('Function execution started. Logging request details...');
-  log('Request Headers:');
-  log(JSON.stringify(req.headers, null, 2)); // Pretty-print the headers JSON
-  log('Request Body (Payload):');
-  log(JSON.stringify(req.body, null, 2));   // Pretty-print the body JSON
-  // =================================================================
-
   // 1. Environment Variable Check
   throwIfMissing(process.env, [
     'ALGOLIA_APP_ID',
@@ -24,8 +14,8 @@ export default async ({ req, res, log, error }) => {
   const eventData = req.body;
 
   if (!event) {
-    const message = "This function must be triggered by an Appwrite event.";
-    error(message); // Use error log for missing critical info
+    const message = "Function was not triggered by an Appwrite event.";
+    error(message);
     return res.json({ success: false, message }, 400);
   }
 
@@ -36,13 +26,13 @@ export default async ({ req, res, log, error }) => {
   );
   const index = algolia.initIndex(process.env.ALGOLIA_INDEX_ID);
 
-  // 4. Handle DELETE events universally
+  // 4. Handle DELETE events
   if (event.includes('.delete')) {
     const documentId = eventData.$id;
-    log(`Attempting to delete document: ${documentId} from Algolia.`);
+    log(`Attempting to delete document from Algolia: ${documentId}`);
     try {
       await index.deleteObject(documentId);
-      log(`Successfully deleted document ${documentId} from index.`);
+      log(`Successfully deleted document: ${documentId}`);
       return res.json({ success: true, message: `Document ${documentId} deleted.` });
     } catch (err) {
       error(`Failed to delete document ${documentId}: ${err.message}`);
@@ -52,9 +42,10 @@ export default async ({ req, res, log, error }) => {
 
   // 5. Handle CREATE/UPDATE events
   if (event.includes('.create') || event.includes('.update')) {
-    const collectionId = event.split('.')[3]; // Correct index is 3
+    const collectionId = event.split('.')[3];
+    const documentId = eventData.$id;
 
-    log(`Syncing Create/Update for collection '${collectionId}', document: ${eventData.$id}`);
+    log(`Syncing document: ${documentId} from collection: ${collectionId}`);
 
     let record;
     // Use a switch to build the correct record based on the collection
@@ -100,20 +91,18 @@ export default async ({ req, res, log, error }) => {
         error(`Unhandled collection for sync: ${collectionId}`);
         return res.json({ success: false, message: `Collection type '${collectionId}' not handled.`}, 400);
     }
-    
-    log('Constructed Algolia Record:');
-    log(JSON.stringify(record, null, 2));
 
     try {
       await index.saveObject(record);
-      log(`Successfully synced document ${record.objectID}`);
-      return res.json({ success: true, message: `Document ${record.objectID} synced.` });
+      log(`Successfully synced document: ${documentId}`);
+      return res.json({ success: true, message: `Document ${documentId} synced.` });
     } catch (err) {
-      error(`Failed to sync document ${record.objectID}: ${err.message}`);
+      error(`Failed to sync document ${documentId}: ${err.message}`);
       return res.json({ success: false, error: err.message }, 500);
     }
   }
 
-  log(`Unhandled event type: ${event}`);
+  // Use error log for unhandled cases
+  error(`Unhandled event type: ${event}`);
   return res.json({ success: false, message: 'Event type not handled.'}, 400);
 };
