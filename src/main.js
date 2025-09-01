@@ -2,6 +2,16 @@ import algoliasearch from 'algoliasearch';
 import { throwIfMissing } from './utils.js';
 
 export default async ({ req, res, log, error }) => {
+  // =================================================================
+  // NEW: Added detailed logging for debugging
+  // =================================================================
+  log('Function execution started. Logging request details...');
+  log('Request Headers:');
+  log(JSON.stringify(req.headers, null, 2)); // Pretty-print the headers JSON
+  log('Request Body (Payload):');
+  log(JSON.stringify(req.body, null, 2));   // Pretty-print the body JSON
+  // =================================================================
+
   // 1. Environment Variable Check
   throwIfMissing(process.env, [
     'ALGOLIA_APP_ID',
@@ -15,7 +25,7 @@ export default async ({ req, res, log, error }) => {
 
   if (!event) {
     const message = "This function must be triggered by an Appwrite event.";
-    log(message);
+    error(message); // Use error log for missing critical info
     return res.json({ success: false, message }, 400);
   }
 
@@ -42,11 +52,11 @@ export default async ({ req, res, log, error }) => {
 
   // 5. Handle CREATE/UPDATE events
   if (event.includes('.create') || event.includes('.update')) {
-    let record;
-    const collectionId = event.split('.')[2]; // e.g., databases.main.collections.notes.documents...
+    const collectionId = event.split('.')[3]; // Correct index is 3
 
     log(`Syncing Create/Update for collection '${collectionId}', document: ${eventData.$id}`);
 
+    let record;
     // Use a switch to build the correct record based on the collection
     switch (collectionId) {
       case process.env.APPWRITE_NOTE_COLLECTION_ID:
@@ -87,9 +97,12 @@ export default async ({ req, res, log, error }) => {
         };
         break;
       default:
-        log(`Unhandled collection for sync: ${collectionId}`);
+        error(`Unhandled collection for sync: ${collectionId}`);
         return res.json({ success: false, message: `Collection type '${collectionId}' not handled.`}, 400);
     }
+    
+    log('Constructed Algolia Record:');
+    log(JSON.stringify(record, null, 2));
 
     try {
       await index.saveObject(record);
