@@ -57,7 +57,7 @@ export default async ({ req, res, log, error }) => {
           title: eventData.title,
           description: eventData.description,
           abbreviation: eventData.abbreviation,
-          path: `/semester/${eventData.semester}/${eventData.abbreviation}#note-${eventData.$id}`
+          path: `/semester/${eventData.semester}/${eventData.abbreviation}?noteId=${eventData.$id}#note-${eventData.$id}`,
         };
         break;
       case process.env.APPWRITE_SUBJECT_COLLECTION_ID:
@@ -76,7 +76,7 @@ export default async ({ req, res, log, error }) => {
           type: "youtube",
           title: eventData.title,
           abbreviation: eventData.abbreviation,
-          path: `/semester/${eventData.semester ?? 'unknown'}/${eventData.abbreviation ?? 'unknown'}#youtube-${eventData.$id}`
+          path: `/semester/${eventData.semester}/${eventData.abbreviation}?youtubeId=${eventData.$id}#youtube-${eventData.$id}`,
         };
         break;
       case process.env.APPWRITE_QUIZ_COLLECTION_ID:
